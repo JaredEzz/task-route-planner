@@ -68,6 +68,7 @@ const RELIC_THRESHOLDS = [0, 750, 1500, 2500, 5000, 8000, 16000, 25000]
 // Region unlock thresholds (task count) - update these when Jagex changes them
 const REGION_THRESHOLDS = [20, 100, 200, 400]
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const TIERS: (Tier | 'All')[] = ['All', 'Easy', 'Medium', 'Hard', 'Elite', 'Master']
 
 function SortableRouteItem({ task, index, isCompleted, onToggleComplete, onRemove }: {
@@ -195,7 +196,7 @@ function App() {
     const saved = localStorage.getItem('task-route')
     return saved ? JSON.parse(saved) : []
   })
-  const [showCompleted, setShowCompleted] = useState(true)
+  const [showCompleted] = useState(true)
   const [activeTab, setActiveTab] = useState<'tasks' | 'route' | 'json'>('tasks')
 
   const allTasks = tasks as Task[]
