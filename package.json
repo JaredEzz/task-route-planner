@@ -2,6 +2,7 @@
   "name": "task-route-planner",
   "version": "0.1.0",
   "private": true,
+  "homepage": "https://jaredezz.github.io/task-route-planner",
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
