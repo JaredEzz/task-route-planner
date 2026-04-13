@@ -26,11 +26,11 @@ const TIER_COLORS: Record<string, string> = {
   Master: '#e67e22',
 }
 
-const SELECTABLE_REGIONS = ['Asgarnia', 'Desert', 'Kandarin', 'Kourend', 'Tirannwn', 'Wilderness']
+const SELECTABLE_REGIONS = ['Asgarnia', 'Desert', 'Fremennik', 'Kandarin', 'Kourend', 'Morytania', 'Tirannwn', 'Wilderness']
 const TOGGLEABLE_REGIONS = ['Varlamore', 'Karamja']
 const MAX_EXTRA_REGIONS = 3
 
-const ALL_REGIONS = ['Asgarnia', 'Desert', 'General', 'Kandarin', 'Karamja', 'Kourend', 'Tirannwn', 'Varlamore', 'Wilderness']
+const ALL_REGIONS = ['Asgarnia', 'Desert', 'Fremennik', 'General', 'Kandarin', 'Karamja', 'Kourend', 'Morytania', 'Tirannwn', 'Varlamore', 'Wilderness']
 const ALL_TIERS = ['Easy', 'Medium', 'Hard', 'Elite', 'Master']
 const ALL_SKILLS = [
   'Agility', 'Attack', 'Construction', 'Cooking', 'Crafting', 'Defence',
