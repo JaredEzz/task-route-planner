@@ -62,6 +62,17 @@ function getAutocomplete(input: string): Array<{ display: string, filter: { key:
   return suggestions.slice(0, 3)
 }
 
+// Route entry: either a task ID or a section heading
+type RouteEntry = number | { type: 'section', id: string, title: string, collapsed: boolean }
+
+function isSection(entry: RouteEntry): entry is { type: 'section', id: string, title: string, collapsed: boolean } {
+  return typeof entry === 'object' && entry.type === 'section'
+}
+
+function getEntryId(entry: RouteEntry): string | number {
+  return isSection(entry) ? entry.id : entry
+}
+
 // Relic unlock thresholds (points) - update these when Jagex changes them
 const RELIC_THRESHOLDS = [0, 750, 1500, 2500, 5000, 8000, 16000, 25000]
 
@@ -188,6 +199,71 @@ function SortableRouteItem({ task, index, isCompleted, onToggleComplete, onRemov
   )
 }
 
+function SortableSectionItem({ section, onToggleCollapse, onRemove, onRename }: {
+  section: { id: string, title: string, collapsed: boolean },
+  onToggleCollapse: (id: string) => void,
+  onRemove: (id: string) => void,
+  onRename: (id: string, title: string) => void,
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: section.id })
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState(section.title)
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 10 : undefined,
+  }
+
+  return (
+    <div ref={setNodeRef} style={{
+      ...style,
+      display: 'flex', alignItems: 'center', gap: '0.5rem',
+      padding: '0.5rem 0.75rem', borderRadius: 6, margin: '0.4rem 0',
+      background: isDragging ? '#3a3a5e' : '#2a2a4e',
+      border: '2px solid #555',
+      cursor: 'pointer',
+    }}>
+      <span
+        onClick={() => onToggleCollapse(section.id)}
+        style={{ fontSize: '0.8rem', color: '#aaa', userSelect: 'none', minWidth: 16 }}
+      >
+        {section.collapsed ? '▶' : '▼'}
+      </span>
+      {editing ? (
+        <input
+          value={draft}
+          onChange={e => setDraft(e.target.value)}
+          onKeyDown={e => {
+            if (e.key === 'Enter') { onRename(section.id, draft); setEditing(false) }
+            if (e.key === 'Escape') setEditing(false)
+          }}
+          onBlur={() => { onRename(section.id, draft); setEditing(false) }}
+          autoFocus
+          style={{
+            flex: 1, background: '#0d1117', border: '1px solid #444', borderRadius: 4,
+            color: '#fff', fontSize: '0.9rem', fontWeight: 'bold', padding: '0.2rem 0.4rem',
+          }}
+        />
+      ) : (
+        <span
+          onDoubleClick={() => { setDraft(section.title); setEditing(true) }}
+          style={{ flex: 1, color: '#fff', fontWeight: 'bold', fontSize: '0.9rem' }}
+        >
+          {section.title}
+        </span>
+      )}
+      <button onClick={() => onRemove(section.id)}
+        style={{ background: 'none', border: 'none', color: '#e74c3c', cursor: 'pointer', fontSize: '0.85rem', padding: '0 4px' }}>
+        x
+      </button>
+      <div {...attributes} {...listeners}
+        style={{ cursor: isDragging ? 'grabbing' : 'grab', padding: '0.25rem 0.4rem', color: '#555', fontSize: '1rem', userSelect: 'none', touchAction: 'none' }}>
+        ⠿
+      </div>
+    </div>
+  )
+}
+
 function App() {
   const [filterInput, setFilterInput] = useState('')
   const [filters, setFilters] = useState<Array<{ key: string, value: string }>>([])
@@ -221,6 +297,38 @@ function App() {
     setFilters(prev => prev.filter((_, i) => i !== index))
   }, [])
 
+  const addSection = useCallback((title: string) => {
+    setRoute(prev => {
+      const next = [...prev, { type: 'section' as const, id: `sec-${Date.now()}`, title, collapsed: false }]
+      localStorage.setItem('task-route', JSON.stringify(next))
+      return next
+    })
+  }, [])
+
+  const toggleSectionCollapse = useCallback((sectionId: string) => {
+    setRoute(prev => {
+      const next = prev.map(e => isSection(e) && e.id === sectionId ? { ...e, collapsed: !e.collapsed } : e)
+      localStorage.setItem('task-route', JSON.stringify(next))
+      return next
+    })
+  }, [])
+
+  const removeSection = useCallback((sectionId: string) => {
+    setRoute(prev => {
+      const next = prev.filter(e => !(isSection(e) && e.id === sectionId))
+      localStorage.setItem('task-route', JSON.stringify(next))
+      return next
+    })
+  }, [])
+
+  const renameSection = useCallback((sectionId: string, title: string) => {
+    setRoute(prev => {
+      const next = prev.map(e => isSection(e) && e.id === sectionId ? { ...e, title } : e)
+      localStorage.setItem('task-route', JSON.stringify(next))
+      return next
+    })
+  }, [])
+
   const updateNote = useCallback((id: number, note: string) => {
     setNotes(prev => {
       const next = { ...prev }
@@ -252,7 +360,7 @@ function App() {
     const saved = localStorage.getItem('completed-tasks')
     return saved ? new Set(JSON.parse(saved)) : new Set()
   })
-  const [route, setRoute] = useState<number[]>(() => {
+  const [route, setRoute] = useState<RouteEntry[]>(() => {
     const saved = localStorage.getItem('task-route')
     return saved ? JSON.parse(saved) : []
   })
@@ -266,7 +374,8 @@ function App() {
     return m
   }, [allTasks])
 
-  const routeSet = useMemo(() => new Set(route), [route])
+  const routeTaskIds = useMemo(() => route.filter((e): e is number => typeof e === 'number'), [route])
+  const routeSet = useMemo(() => new Set(routeTaskIds), [routeTaskIds])
 
   const toggleToggledRegion = (region: string) => {
     setToggledRegions(prev => {
@@ -367,8 +476,9 @@ function App() {
     const { active, over } = event
     if (over && active.id !== over.id) {
       setRoute(prev => {
-        const oldIndex = prev.indexOf(active.id as number)
-        const newIndex = prev.indexOf(over.id as number)
+        const oldIndex = prev.findIndex(e => getEntryId(e) === active.id)
+        const newIndex = prev.findIndex(e => getEntryId(e) === over.id)
+        if (oldIndex === -1 || newIndex === -1) return prev
         const next = arrayMove(prev, oldIndex, newIndex)
         localStorage.setItem('task-route', JSON.stringify(next))
         return next
@@ -376,7 +486,7 @@ function App() {
     }
   }, [])
 
-  const routeTasks = route.map(id => taskMap.get(id)).filter(Boolean) as Task[]
+  const routeTasks = routeTaskIds.map(id => taskMap.get(id)).filter(Boolean) as Task[]
   const routePoints = routeTasks.reduce((s, t) => s + t.points, 0)
   const routeCompleted = routeTasks.filter(t => completed.has(t.id)).length
   const routeEarnedPoints = routeTasks.filter(t => completed.has(t.id)).reduce((s, t) => s + t.points, 0)
@@ -695,6 +805,19 @@ function App() {
             >
               Export Route
             </button>
+            <button
+              onClick={() => {
+                const title = prompt('Section heading:')
+                if (title) addSection(title)
+              }}
+              style={{
+                background: '#9b59b6', border: 'none', color: '#fff',
+                padding: '0.3rem 0.6rem', borderRadius: 4, fontSize: '0.75rem',
+                cursor: 'pointer',
+              }}
+            >
+              + Section
+            </button>
             <label style={{
               background: '#2ecc71', color: '#fff',
               padding: '0.3rem 0.6rem', borderRadius: 4, fontSize: '0.75rem',
@@ -746,57 +869,97 @@ function App() {
           )}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-              <SortableContext items={route} strategy={verticalListSortingStrategy}>
-                {routeWithMilestones.map((item, i) => {
-                  if (item.type === 'relic') {
-                    return (
-                      <div key={`relic-${item.relicNumber}`} style={{
-                        display: 'flex', alignItems: 'center', gap: '0.5rem',
-                        padding: '0.5rem 0.75rem', borderRadius: 6, margin: '0.25rem 0',
-                        background: 'linear-gradient(90deg, #e67e22 0%, #f39c12 50%, #e67e22 100%)',
-                        border: '2px solid #f39c12',
-                      }}>
+              <SortableContext items={route.map(e => getEntryId(e))} strategy={verticalListSortingStrategy}>
+                {(() => {
+                  const elements: React.ReactNode[] = []
+                  let taskIdx = 0
+                  let cumPoints = 0
+                  let taskCount = 0
+                  let nextRelicIdx = 0
+                  let nextRegionIdx = 0
+                  let currentSectionCollapsed = false
+
+                  // Relic 1 at 0 pts
+                  while (nextRelicIdx < RELIC_THRESHOLDS.length && RELIC_THRESHOLDS[nextRelicIdx] <= 0) {
+                    elements.push(
+                      <div key={`relic-${nextRelicIdx}`} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 0.75rem', borderRadius: 6, margin: '0.25rem 0', background: 'linear-gradient(90deg, #e67e22 0%, #f39c12 50%, #e67e22 100%)', border: '2px solid #f39c12' }}>
                         <span style={{ fontSize: '1.2rem' }}>🔓</span>
-                        <span style={{ color: '#fff', fontWeight: 'bold', fontSize: '0.9rem', flex: 1 }}>
-                          Relic {item.relicNumber} Unlock
-                        </span>
-                        <span style={{ color: '#fff', fontSize: '0.8rem', opacity: 0.9 }}>
-                          {item.threshold.toLocaleString()} pts
-                        </span>
+                        <span style={{ color: '#fff', fontWeight: 'bold', fontSize: '0.9rem', flex: 1 }}>Relic {nextRelicIdx + 1} Unlock</span>
+                        <span style={{ color: '#fff', fontSize: '0.8rem', opacity: 0.9 }}>0 pts</span>
                       </div>
                     )
+                    nextRelicIdx++
                   }
-                  if (item.type === 'region') {
-                    return (
-                      <div key={`region-${item.regionNumber}`} style={{
-                        display: 'flex', alignItems: 'center', gap: '0.5rem',
-                        padding: '0.5rem 0.75rem', borderRadius: 6, margin: '0.25rem 0',
-                        background: 'linear-gradient(90deg, #3498db 0%, #2980b9 50%, #3498db 100%)',
-                        border: '2px solid #2980b9',
-                      }}>
-                        <span style={{ fontSize: '1.2rem' }}>🗺</span>
-                        <span style={{ color: '#fff', fontWeight: 'bold', fontSize: '0.9rem', flex: 1 }}>
-                          Region {item.regionNumber} Unlock
-                        </span>
-                        <span style={{ color: '#fff', fontSize: '0.8rem', opacity: 0.9 }}>
-                          {item.threshold} tasks
-                        </span>
-                      </div>
+
+                  for (const entry of route) {
+                    if (isSection(entry)) {
+                      currentSectionCollapsed = entry.collapsed
+                      elements.push(
+                        <SortableSectionItem
+                          key={entry.id}
+                          section={entry}
+                          onToggleCollapse={toggleSectionCollapse}
+                          onRemove={removeSection}
+                          onRename={renameSection}
+                        />
+                      )
+                      continue
+                    }
+
+                    const task = taskMap.get(entry)
+                    if (!task) continue
+
+                    if (currentSectionCollapsed) {
+                      cumPoints += task.points
+                      taskCount++
+                      taskIdx++
+                      // Still compute milestones but don't render tasks
+                      while (nextRelicIdx < RELIC_THRESHOLDS.length && cumPoints >= RELIC_THRESHOLDS[nextRelicIdx]) nextRelicIdx++
+                      while (nextRegionIdx < REGION_THRESHOLDS.length && taskCount >= REGION_THRESHOLDS[nextRegionIdx]) nextRegionIdx++
+                      continue
+                    }
+
+                    cumPoints += task.points
+                    taskCount++
+
+                    elements.push(
+                      <SortableRouteItem
+                        key={task.id}
+                        task={task}
+                        index={taskIdx}
+                        isCompleted={completed.has(task.id)}
+                        onToggleComplete={toggleComplete}
+                        onRemove={removeFromRoute}
+                        note={notes[task.id] || ''}
+                        onNoteChange={updateNote}
+                      />
                     )
+                    taskIdx++
+
+                    while (nextRelicIdx < RELIC_THRESHOLDS.length && cumPoints >= RELIC_THRESHOLDS[nextRelicIdx]) {
+                      elements.push(
+                        <div key={`relic-${nextRelicIdx}`} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 0.75rem', borderRadius: 6, margin: '0.25rem 0', background: 'linear-gradient(90deg, #e67e22 0%, #f39c12 50%, #e67e22 100%)', border: '2px solid #f39c12' }}>
+                          <span style={{ fontSize: '1.2rem' }}>🔓</span>
+                          <span style={{ color: '#fff', fontWeight: 'bold', fontSize: '0.9rem', flex: 1 }}>Relic {nextRelicIdx + 1} Unlock</span>
+                          <span style={{ color: '#fff', fontSize: '0.8rem', opacity: 0.9 }}>{RELIC_THRESHOLDS[nextRelicIdx].toLocaleString()} pts</span>
+                        </div>
+                      )
+                      nextRelicIdx++
+                    }
+
+                    while (nextRegionIdx < REGION_THRESHOLDS.length && taskCount >= REGION_THRESHOLDS[nextRegionIdx]) {
+                      elements.push(
+                        <div key={`region-${nextRegionIdx}`} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 0.75rem', borderRadius: 6, margin: '0.25rem 0', background: 'linear-gradient(90deg, #3498db 0%, #2980b9 50%, #3498db 100%)', border: '2px solid #2980b9' }}>
+                          <span style={{ fontSize: '1.2rem' }}>🗺</span>
+                          <span style={{ color: '#fff', fontWeight: 'bold', fontSize: '0.9rem', flex: 1 }}>Region {nextRegionIdx + 1} Unlock</span>
+                          <span style={{ color: '#fff', fontSize: '0.8rem', opacity: 0.9 }}>{REGION_THRESHOLDS[nextRegionIdx]} tasks</span>
+                        </div>
+                      )
+                      nextRegionIdx++
+                    }
                   }
-                  return (
-                    <SortableRouteItem
-                      key={item.task.id}
-                      task={item.task}
-                      index={item.index}
-                      isCompleted={completed.has(item.task.id)}
-                      onToggleComplete={toggleComplete}
-                      onRemove={removeFromRoute}
-                      note={notes[item.task.id] || ''}
-                      onNoteChange={updateNote}
-                    />
-                  )
-                })}
+                  return elements
+                })()}
               </SortableContext>
             </DndContext>
           </div>
