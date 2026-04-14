@@ -493,46 +493,7 @@ function App() {
 
   // Compute relic unlock positions in the route
   // For each task in order, track cumulative points and note where thresholds are crossed
-  const routeWithMilestones = useMemo(() => {
-    type MilestoneItem =
-      | { type: 'task', task: Task, index: number, cumPoints: number }
-      | { type: 'relic', threshold: number, relicNumber: number }
-      | { type: 'region', threshold: number, regionNumber: number }
-
-    const items: MilestoneItem[] = []
-    let cumPoints = 0
-    let nextRelicIdx = 0
-    let nextRegionIdx = 0
-    let taskCount = 0
-
-    // Relic 1 unlocks at 0 pts
-    while (nextRelicIdx < RELIC_THRESHOLDS.length && RELIC_THRESHOLDS[nextRelicIdx] <= 0) {
-      items.push({ type: 'relic', threshold: 0, relicNumber: nextRelicIdx + 1 })
-      nextRelicIdx++
-    }
-
-    for (let i = 0; i < routeTasks.length; i++) {
-      cumPoints += routeTasks[i].points
-      taskCount++
-
-      // Task first, then milestones after it (the task that crosses the threshold triggers the unlock)
-      items.push({ type: 'task', task: routeTasks[i], index: i, cumPoints })
-
-      // Check relic thresholds (points-based)
-      while (nextRelicIdx < RELIC_THRESHOLDS.length && cumPoints >= RELIC_THRESHOLDS[nextRelicIdx]) {
-        items.push({ type: 'relic', threshold: RELIC_THRESHOLDS[nextRelicIdx], relicNumber: nextRelicIdx + 1 })
-        nextRelicIdx++
-      }
-
-      // Check region thresholds (task-count-based)
-      while (nextRegionIdx < REGION_THRESHOLDS.length && taskCount >= REGION_THRESHOLDS[nextRegionIdx]) {
-        items.push({ type: 'region', threshold: REGION_THRESHOLDS[nextRegionIdx], regionNumber: nextRegionIdx + 1 })
-        nextRegionIdx++
-      }
-    }
-
-    return items
-  }, [routeTasks])
+  // Milestones are now computed inline in the route rendering
 
   const filteredPoints = filtered.reduce((s, t) => s + t.points, 0)
 
