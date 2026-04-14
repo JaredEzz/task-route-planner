@@ -71,11 +71,14 @@ const REGION_THRESHOLDS = [20, 100, 200, 400]
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const TIERS: (Tier | 'All')[] = ['All', 'Easy', 'Medium', 'Hard', 'Elite', 'Master']
 
-function SortableRouteItem({ task, index, isCompleted, onToggleComplete, onRemove }: {
+function SortableRouteItem({ task, index, isCompleted, onToggleComplete, onRemove, note, onNoteChange }: {
   task: Task, index: number, isCompleted: boolean,
   onToggleComplete: (id: number) => void, onRemove: (id: number) => void,
+  note: string, onNoteChange: (id: number, note: string) => void,
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: task.id })
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState(note)
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
@@ -86,10 +89,10 @@ function SortableRouteItem({ task, index, isCompleted, onToggleComplete, onRemov
   return (
     <div ref={setNodeRef} style={{
       ...style,
-      display: 'flex', alignItems: 'center', gap: '0.5rem',
       padding: '0.4rem 0.6rem', borderRadius: 6,
       background: isDragging ? '#2a2a4e' : isCompleted ? '#1a3a2a' : '#1a1a2e',
     }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
       <span style={{ color: '#666', fontSize: '0.75rem', minWidth: 20, textAlign: 'right' }}>
         {index + 1}.
       </span>
@@ -122,6 +125,11 @@ function SortableRouteItem({ task, index, isCompleted, onToggleComplete, onRemov
         )}
       </div>
       <span style={{ fontSize: '0.75rem', color: '#888' }}>{task.points} pts</span>
+      <button onClick={() => { setDraft(note); setEditing(!editing) }}
+        title={note ? 'Edit note' : 'Add note'}
+        style={{ background: 'none', border: 'none', color: note ? '#3498db' : '#555', cursor: 'pointer', fontSize: '0.85rem', padding: '0 4px' }}>
+        {note ? '📝' : '💬'}
+      </button>
       <button onClick={() => onRemove(task.id)}
         style={{ background: 'none', border: 'none', color: '#e74c3c', cursor: 'pointer', fontSize: '1rem', padding: '0 4px', fontWeight: 'bold' }}>
         x
@@ -138,6 +146,44 @@ function SortableRouteItem({ task, index, isCompleted, onToggleComplete, onRemov
       >
         ⠿
       </div>
+      </div>
+      {/* Note display */}
+      {note && !editing && (
+        <div style={{ fontSize: '0.75rem', color: '#aaa', marginTop: 3, marginLeft: 28, fontStyle: 'italic' }}>
+          {note}
+        </div>
+      )}
+      {/* Note editor */}
+      {editing && (
+        <div style={{ marginTop: 4, marginLeft: 28, display: 'flex', gap: '0.3rem' }}>
+          <input
+            type="text"
+            value={draft}
+            onChange={e => setDraft(e.target.value)}
+            onKeyDown={e => {
+              if (e.key === 'Enter') { onNoteChange(task.id, draft); setEditing(false) }
+              if (e.key === 'Escape') setEditing(false)
+            }}
+            placeholder="Add a note..."
+            autoFocus
+            style={{
+              flex: 1, padding: '0.25rem 0.4rem', borderRadius: 4,
+              border: '1px solid #444', background: '#0d1117', color: '#ddd',
+              fontSize: '0.8rem',
+            }}
+          />
+          <button onClick={() => { onNoteChange(task.id, draft); setEditing(false) }}
+            style={{ background: '#2ecc71', border: 'none', color: '#fff', borderRadius: 4, padding: '0.25rem 0.5rem', fontSize: '0.75rem', cursor: 'pointer' }}>
+            Save
+          </button>
+          {note && (
+            <button onClick={() => { onNoteChange(task.id, ''); setEditing(false) }}
+              style={{ background: '#e74c3c', border: 'none', color: '#fff', borderRadius: 4, padding: '0.25rem 0.5rem', fontSize: '0.75rem', cursor: 'pointer' }}>
+              Delete
+            </button>
+          )}
+        </div>
+      )}
     </div>
   )
 }
@@ -145,6 +191,10 @@ function SortableRouteItem({ task, index, isCompleted, onToggleComplete, onRemov
 function App() {
   const [filterInput, setFilterInput] = useState('')
   const [filters, setFilters] = useState<Array<{ key: string, value: string }>>([])
+  const [notes, setNotes] = useState<Record<number, string>>(() => {
+    const saved = localStorage.getItem('task-notes')
+    return saved ? JSON.parse(saved) : {}
+  })
   const [showAutocomplete, setShowAutocomplete] = useState(false)
   const autocompleSuggestions = useMemo(() => getAutocomplete(filterInput), [filterInput])
 
@@ -169,6 +219,16 @@ function App() {
 
   const removeFilter = useCallback((index: number) => {
     setFilters(prev => prev.filter((_, i) => i !== index))
+  }, [])
+
+  const updateNote = useCallback((id: number, note: string) => {
+    setNotes(prev => {
+      const next = { ...prev }
+      if (note) next[id] = note
+      else delete next[id]
+      localStorage.setItem('task-notes', JSON.stringify(next))
+      return next
+    })
   }, [])
 
   const applyAutocomplete = useCallback((filter: { key: string, value: string }) => {
@@ -618,7 +678,7 @@ function App() {
           <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem', justifyContent: 'flex-end' }}>
             <button
               onClick={() => {
-                const data = JSON.stringify({ route, completed: Array.from(completed) }, null, 2)
+                const data = JSON.stringify({ route, completed: Array.from(completed), notes }, null, 2)
                 const blob = new Blob([data], { type: 'application/json' })
                 const url = URL.createObjectURL(blob)
                 const a = document.createElement('a')
@@ -659,6 +719,10 @@ function App() {
                       if (data.completed && Array.isArray(data.completed)) {
                         setCompleted(new Set(data.completed))
                         localStorage.setItem('completed-tasks', JSON.stringify(data.completed))
+                      }
+                      if (data.notes && typeof data.notes === 'object') {
+                        setNotes(data.notes)
+                        localStorage.setItem('task-notes', JSON.stringify(data.notes))
                       }
                     } catch {
                       alert('Invalid route file')
@@ -728,6 +792,8 @@ function App() {
                       isCompleted={completed.has(item.task.id)}
                       onToggleComplete={toggleComplete}
                       onRemove={removeFromRoute}
+                      note={notes[item.task.id] || ''}
+                      onNoteChange={updateNote}
                     />
                   )
                 })}
