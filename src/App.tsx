@@ -74,7 +74,7 @@ function getEntryId(entry: RouteEntry): string | number {
 }
 
 // Relic unlock thresholds (points) - update these when Jagex changes them
-const RELIC_THRESHOLDS = [0, 750, 1500, 2500, 5000, 8000, 16000, 25000]
+const RELIC_THRESHOLDS = [0, 600, 1200, 2600, 5200, 8500, 16500, 28000]
 
 // Region unlock thresholds (task count) - update these when Jagex changes them
 const REGION_THRESHOLDS = [20, 100, 200, 400]
