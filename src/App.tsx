@@ -3,7 +3,72 @@ import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, DragEn
 import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import tasks from './tasks.json'
+import idMigration from './id-migration.json'
 import './App.css'
+
+// Migrate localStorage IDs from old wiki task IDs to new ones (one-time)
+function migrateLocalStorage() {
+  const MIGRATION_KEY = 'id-migration-v1-applied'
+  if (localStorage.getItem(MIGRATION_KEY)) return // already migrated
+
+  const migration = idMigration as Record<string, number>
+  if (Object.keys(migration).length === 0) return
+
+  // Migrate route
+  const routeRaw = localStorage.getItem('task-route')
+  if (routeRaw) {
+    try {
+      const route = JSON.parse(routeRaw)
+      const migrated = route.map((entry: any) => {
+        if (typeof entry === 'number') {
+          const newId = migration[String(entry)]
+          return newId !== undefined ? newId : entry
+        }
+        return entry // sections pass through
+      }).filter((entry: any) => {
+        // Remove tasks whose old ID didn't map to anything in the new set
+        if (typeof entry === 'number') {
+          const taskExists = (tasks as any[]).some((t: any) => t.id === entry)
+          return taskExists
+        }
+        return true
+      })
+      localStorage.setItem('task-route', JSON.stringify(migrated))
+    } catch {}
+  }
+
+  // Migrate completed tasks
+  const completedRaw = localStorage.getItem('completed-tasks')
+  if (completedRaw) {
+    try {
+      const completed = JSON.parse(completedRaw) as number[]
+      const migrated = completed
+        .map(id => { const newId = migration[String(id)]; return newId !== undefined ? newId : id })
+        .filter(id => (tasks as any[]).some((t: any) => t.id === id))
+      localStorage.setItem('completed-tasks', JSON.stringify(migrated))
+    } catch {}
+  }
+
+  // Migrate notes
+  const notesRaw = localStorage.getItem('task-notes')
+  if (notesRaw) {
+    try {
+      const notes = JSON.parse(notesRaw) as Record<string, string>
+      const migrated: Record<string, string> = {}
+      for (const [oldId, note] of Object.entries(notes)) {
+        const newId = migration[oldId]
+        migrated[newId !== undefined ? String(newId) : oldId] = note
+      }
+      localStorage.setItem('task-notes', JSON.stringify(migrated))
+    } catch {}
+  }
+
+  localStorage.setItem(MIGRATION_KEY, Date.now().toString())
+  console.log(`[Migration] Migrated ${Object.keys(migration).length} task IDs`)
+}
+
+// Run migration before app renders
+migrateLocalStorage()
 
 type Tier = 'Easy' | 'Medium' | 'Hard' | 'Elite' | 'Master'
 
