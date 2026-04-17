@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useEffect } from 'react'
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
@@ -147,10 +147,11 @@ const REGION_THRESHOLDS = [20, 100, 200, 400]
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const TIERS: (Tier | 'All')[] = ['All', 'Easy', 'Medium', 'Hard', 'Elite', 'Master']
 
-function SortableRouteItem({ task, index, isCompleted, onToggleComplete, onRemove, note, onNoteChange }: {
+function SortableRouteItem({ task, index, isCompleted, onToggleComplete, onRemove, note, onNoteChange, completionPct }: {
   task: Task, index: number, isCompleted: boolean,
   onToggleComplete: (id: number) => void, onRemove: (id: number) => void,
   note: string, onNoteChange: (id: number, note: string) => void,
+  completionPct?: number,
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: task.id })
   const [editing, setEditing] = useState(false)
@@ -200,6 +201,14 @@ function SortableRouteItem({ task, index, isCompleted, onToggleComplete, onRemov
           </div>
         )}
       </div>
+      {completionPct != null && (
+        <span style={{
+          fontSize: '0.6rem',
+          color: completionPct > 50 ? '#27ae60' : completionPct > 20 ? '#f39c12' : '#e74c3c',
+        }}>
+          {completionPct.toFixed(1)}%
+        </span>
+      )}
       <span style={{ fontSize: '0.75rem', color: '#888' }}>{task.points} pts</span>
       <button onClick={() => { setDraft(note); setEditing(!editing) }}
         title={note ? 'Edit note' : 'Add note'}
@@ -476,6 +485,22 @@ function App() {
     URL.revokeObjectURL(url)
     setShowExportMenu(false)
   }, [route, notes])
+
+  const [completionPcts, setCompletionPcts] = useState<Record<number, number>>({})
+
+  useEffect(() => {
+    fetch('https://oldschool.runescape.wiki/api.php?action=parse&page=Module:Demonic_Pacts_League/Tasks/completion.json&prop=wikitext&format=json&origin=*')
+      .then(r => r.json())
+      .then(data => {
+        try {
+          const raw = JSON.parse(data.parse.wikitext['*'])
+          const pcts: Record<number, number> = {}
+          for (const [k, v] of Object.entries(raw)) pcts[Number(k)] = v as number
+          setCompletionPcts(pcts)
+        } catch {}
+      })
+      .catch(() => {})
+  }, [])
 
   const [wikiSyncRsn, setWikiSyncRsn] = useState(() => localStorage.getItem('wikisync-rsn') || '')
   const [wikiSyncStatus, setWikiSyncStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
@@ -881,6 +906,14 @@ function App() {
                     </div>
                   )}
                 </div>
+                {completionPcts[task.id] != null && (
+                  <span style={{
+                    fontSize: '0.65rem', color: completionPcts[task.id] > 50 ? '#27ae60' : completionPcts[task.id] > 20 ? '#f39c12' : '#e74c3c',
+                    minWidth: 40, textAlign: 'right',
+                  }}>
+                    {completionPcts[task.id].toFixed(1)}%
+                  </span>
+                )}
                 <span style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#555' }}>
                   {task.points} pts
                 </span>
@@ -1113,6 +1146,7 @@ function App() {
                         onRemove={removeFromRoute}
                         note={notes[task.id] || ''}
                         onNoteChange={updateNote}
+                        completionPct={completionPcts[task.id]}
                       />
                     )
                     taskIdx++
