@@ -546,6 +546,15 @@ function App() {
         localStorage.setItem('completed-tasks', JSON.stringify(Array.from(next)))
         return next
       })
+      // Also add synced tasks to route if not already there
+      setRoute(prev => {
+        const existing = new Set(prev.filter((e): e is number => typeof e === 'number'))
+        const toAdd = synced.filter(id => !existing.has(id))
+        if (toAdd.length === 0) return prev
+        const next = [...prev, ...toAdd]
+        localStorage.setItem('task-route', JSON.stringify(next))
+        return next
+      })
       setWikiSyncStatus('success')
       setWikiSyncMessage(`Synced ${synced.length} completed tasks from ${data.username || 'WikiSync'}`)
     } catch {
