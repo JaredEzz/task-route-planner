@@ -157,7 +157,7 @@ function getEntryId(entry: RouteEntry): string | number {
 const RELIC_THRESHOLDS = [0, 600, 1200, 2600, 5200, 8500, 16500, 28000]
 
 // Region unlock thresholds (task count) - update these when Jagex changes them
-const REGION_THRESHOLDS = [20, 100, 200, 400]
+const REGION_THRESHOLDS = [80, 200, 300, 450]
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const TIERS: (Tier | 'All')[] = ['All', 'Easy', 'Medium', 'Hard', 'Elite', 'Master']
