@@ -104,10 +104,25 @@ const ALL_SKILLS = [
   'Slayer', 'Smithing', 'Strength', 'Thieving', 'Woodcutting',
 ]
 
+const SORT_OPTIONS = [
+  'percent-increasing', 'percent-decreasing',
+  'points-increasing', 'points-decreasing',
+]
+
 function getAutocomplete(input: string): Array<{ display: string, filter: { key: string, value: string } }> {
   if (input.length < 3) return []
   const lower = input.toLowerCase()
   const suggestions: Array<{ display: string, filter: { key: string, value: string } }> = []
+
+  // Sort suggestions
+  if ('sort'.startsWith(lower.split(':')[0].trim()) || lower.startsWith('sort')) {
+    const afterColon = lower.includes(':') ? lower.split(':')[1].trim() : ''
+    for (const opt of SORT_OPTIONS) {
+      if (!afterColon || opt.includes(afterColon)) {
+        suggestions.push({ display: `sort: ${opt}`, filter: { key: 'sort', value: opt } })
+      }
+    }
+  }
 
   for (const r of ALL_REGIONS) {
     if (r.toLowerCase().startsWith(lower) || r.toLowerCase().includes(lower)) {
@@ -124,7 +139,7 @@ function getAutocomplete(input: string): Array<{ display: string, filter: { key:
       suggestions.push({ display: `req: ${s.toLowerCase()}`, filter: { key: 'req', value: s.toLowerCase() } })
     }
   }
-  return suggestions.slice(0, 3)
+  return suggestions.slice(0, 5)
 }
 
 // Route entry: either a task ID or a section heading
@@ -357,7 +372,12 @@ function App() {
       const key = input.slice(0, colonIdx).trim()
       const value = input.slice(colonIdx + 1).trim()
       if (key && value) {
-        setFilters(prev => [...prev, { key, value }])
+        // Only allow one sort at a time - replace existing
+        if (key === 'sort') {
+          setFilters(prev => [...prev.filter(f => f.key !== 'sort'), { key, value }])
+        } else {
+          setFilters(prev => [...prev, { key, value }])
+        }
         setFilterInput('')
         return
       }
@@ -414,7 +434,11 @@ function App() {
   }, [])
 
   const applyAutocomplete = useCallback((filter: { key: string, value: string }) => {
-    setFilters(prev => [...prev, filter])
+    if (filter.key === 'sort') {
+      setFilters(prev => [...prev.filter(f => f.key !== 'sort'), filter])
+    } else {
+      setFilters(prev => [...prev, filter])
+    }
     setFilterInput('')
     setShowAutocomplete(false)
   }, [])
@@ -585,14 +609,17 @@ function App() {
   }
 
   const filtered = useMemo(() => {
-    return allTasks.filter(t => {
+    const nonSortFilters = filters.filter(f => f.key !== 'sort')
+    const sortFilter = filters.find(f => f.key === 'sort')
+
+    const result = allTasks.filter(t => {
       if (routeSet.has(t.id)) return false
       if (!activeRegions.has(t.region)) return false
       if (!showCompleted && completed.has(t.id)) return false
 
       // Group filters by type: same type = OR, different types = AND
       const grouped: Record<string, string[]> = {}
-      for (const f of filters) {
+      for (const f of nonSortFilters) {
         const key = f.key
         if (!grouped[key]) grouped[key] = []
         grouped[key].push(f.value.toLowerCase())
@@ -618,7 +645,20 @@ function App() {
       }
       return true
     })
-  }, [allTasks, activeRegions, filters, completed, showCompleted, routeSet])
+
+    if (sortFilter) {
+      const sv = sortFilter.value
+      result.sort((a, b) => {
+        if (sv === 'percent-increasing') return (completionPcts[a.id] ?? 0) - (completionPcts[b.id] ?? 0)
+        if (sv === 'percent-decreasing') return (completionPcts[b.id] ?? 0) - (completionPcts[a.id] ?? 0)
+        if (sv === 'points-increasing') return a.points - b.points
+        if (sv === 'points-decreasing') return b.points - a.points
+        return 0
+      })
+    }
+
+    return result
+  }, [allTasks, activeRegions, filters, completed, showCompleted, routeSet, completionPcts])
 
   const toggleComplete = (id: number) => {
     setCompleted(prev => {
@@ -791,6 +831,7 @@ function App() {
                   region: '#e67e22',
                   tier: '#9b59b6',
                   req: '#2ecc71',
+                  sort: '#e74c3c',
                   text: '#3498db',
                 }
                 return (
@@ -856,7 +897,7 @@ function App() {
               )}
             </div>
             <div style={{ fontSize: '0.7rem', color: '#999', marginTop: '0.25rem' }}>
-              region: name | tier: easy/medium/hard/elite/master | req: skill name (e.g. req: fishing) | or plain text. Enter/Tab to add top suggestion.
+              region: name | tier: easy/medium/hard/elite/master | req: skill name | sort: percent/points-increasing/decreasing | or plain text
             </div>
           </div>
 
