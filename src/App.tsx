@@ -736,14 +736,15 @@ function App() {
   // For each task in order, track cumulative points and note where thresholds are crossed
   // Milestones are now computed inline in the route rendering
 
-  // Next relic/region unlock progress
-  const nextRelicThreshold = RELIC_THRESHOLDS.find(t => t > routeEarnedPoints)
+  // Next relic/region unlock progress (includes incomplete route tasks)
+  const routeTaskCount = routeTasks.length
+  const nextRelicThreshold = RELIC_THRESHOLDS.find(t => t > routePoints)
   const nextRelicIndex = nextRelicThreshold ? RELIC_THRESHOLDS.indexOf(nextRelicThreshold) + 1 : null
-  const pointsUntilNextRelic = nextRelicThreshold ? nextRelicThreshold - routeEarnedPoints : null
+  const pointsUntilNextRelic = nextRelicThreshold ? nextRelicThreshold - routePoints : null
 
-  const nextRegionThreshold = REGION_THRESHOLDS.find(t => t > routeCompleted)
+  const nextRegionThreshold = REGION_THRESHOLDS.find(t => t > routeTaskCount)
   const nextRegionIndex = nextRegionThreshold ? REGION_THRESHOLDS.indexOf(nextRegionThreshold) + 1 : null
-  const tasksUntilNextRegion = nextRegionThreshold ? nextRegionThreshold - routeCompleted : null
+  const tasksUntilNextRegion = nextRegionThreshold ? nextRegionThreshold - routeTaskCount : null
 
   const filteredPoints = filtered.reduce((s, t) => s + t.points, 0)
 
@@ -1274,11 +1275,16 @@ function App() {
                     <span style={{ color: '#ffc29c', fontSize: '0.85rem', flex: 1 }}>
                       <strong>{pointsUntilNextRelic.toLocaleString()}</strong> pts until Relic {nextRelicIndex} unlock ({nextRelicThreshold!.toLocaleString()} pts)
                     </span>
-                    <div style={{ width: 100, height: 6, background: '#333', borderRadius: 3, overflow: 'hidden' }}>
+                    <div style={{ width: 100, height: 6, background: '#333', borderRadius: 3, overflow: 'hidden', position: 'relative' }}>
                       <div style={{
-                        height: '100%', borderRadius: 3,
+                        position: 'absolute', height: '100%', borderRadius: 3,
+                        background: '#daac6455',
+                        width: `${Math.min(100, (routePoints / nextRelicThreshold!) * 100)}%`,
+                      }} />
+                      <div style={{
+                        position: 'absolute', height: '100%', borderRadius: 3,
                         background: '#daac64',
-                        width: `${(routeEarnedPoints / nextRelicThreshold!) * 100}%`,
+                        width: `${Math.min(100, (routeEarnedPoints / nextRelicThreshold!) * 100)}%`,
                       }} />
                     </div>
                   </div>
@@ -1292,11 +1298,16 @@ function App() {
                     <span style={{ color: '#3498db', fontSize: '0.85rem', flex: 1 }}>
                       <strong>{tasksUntilNextRegion}</strong> tasks until Region {nextRegionIndex} unlock ({nextRegionThreshold} tasks)
                     </span>
-                    <div style={{ width: 100, height: 6, background: '#333', borderRadius: 3, overflow: 'hidden' }}>
+                    <div style={{ width: 100, height: 6, background: '#333', borderRadius: 3, overflow: 'hidden', position: 'relative' }}>
                       <div style={{
-                        height: '100%', borderRadius: 3,
+                        position: 'absolute', height: '100%', borderRadius: 3,
+                        background: '#3498db55',
+                        width: `${Math.min(100, (routeTaskCount / nextRegionThreshold!) * 100)}%`,
+                      }} />
+                      <div style={{
+                        position: 'absolute', height: '100%', borderRadius: 3,
                         background: '#3498db',
-                        width: `${(routeCompleted / nextRegionThreshold!) * 100}%`,
+                        width: `${Math.min(100, (routeCompleted / nextRegionThreshold!) * 100)}%`,
                       }} />
                     </div>
                   </div>
