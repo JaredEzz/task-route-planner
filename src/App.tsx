@@ -477,6 +477,47 @@ function App() {
     setShowExportMenu(false)
   }, [route, notes])
 
+  const [wikiSyncRsn, setWikiSyncRsn] = useState(() => localStorage.getItem('wikisync-rsn') || '')
+  const [wikiSyncStatus, setWikiSyncStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
+  const [wikiSyncMessage, setWikiSyncMessage] = useState('')
+
+  const syncFromWiki = useCallback(async () => {
+    const rsn = wikiSyncRsn.trim()
+    if (!rsn) return
+    localStorage.setItem('wikisync-rsn', rsn)
+    setWikiSyncStatus('loading')
+    setWikiSyncMessage('')
+    try {
+      const res = await fetch(`https://sync.runescape.wiki/runelite/player/${encodeURIComponent(rsn)}/DEMONIC_PACTS_LEAGUE`)
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      const data = await res.json()
+      if (data.error || data.code === 'NO_USER_DATA') {
+        setWikiSyncStatus('error')
+        setWikiSyncMessage(data.error || 'No data found. Make sure WikiSync plugin is enabled in RuneLite.')
+        return
+      }
+      const leagueTasks: number[] = data.league_tasks || []
+      if (leagueTasks.length === 0) {
+        setWikiSyncStatus('error')
+        setWikiSyncMessage('No completed tasks found. Have you logged in with the WikiSync plugin?')
+        return
+      }
+      const validIds = new Set((tasks as Task[]).map(t => t.id))
+      const synced = leagueTasks.filter(id => validIds.has(id))
+      setCompleted(prev => {
+        const next = new Set(prev)
+        synced.forEach(id => next.add(id))
+        localStorage.setItem('completed-tasks', JSON.stringify(Array.from(next)))
+        return next
+      })
+      setWikiSyncStatus('success')
+      setWikiSyncMessage(`Synced ${synced.length} completed tasks from ${data.username || rsn}`)
+    } catch (err) {
+      setWikiSyncStatus('error')
+      setWikiSyncMessage('Failed to fetch. Check the username and try again.')
+    }
+  }, [wikiSyncRsn])
+
   const allTasks = tasks as Task[]
   const taskMap = useMemo(() => {
     const m = new Map<number, Task>()
@@ -856,6 +897,40 @@ function App() {
           borderRadius: 10,
           padding: '0.75rem',
         }}>
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem',
+            background: '#1a1a2e', borderRadius: 6, padding: '0.4rem 0.6rem',
+          }}>
+            <span style={{ fontSize: '0.7rem', color: '#aaa', whiteSpace: 'nowrap' }}>WikiSync:</span>
+            <input
+              type="text"
+              placeholder="RuneScape username"
+              value={wikiSyncRsn}
+              onChange={e => setWikiSyncRsn(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') syncFromWiki() }}
+              style={{
+                flex: 1, background: '#0f3460', border: '1px solid #333', borderRadius: 4,
+                color: '#fff', padding: '0.25rem 0.4rem', fontSize: '0.75rem', minWidth: 0,
+              }}
+            />
+            <button
+              onClick={syncFromWiki}
+              disabled={wikiSyncStatus === 'loading' || !wikiSyncRsn.trim()}
+              style={{
+                background: wikiSyncStatus === 'loading' ? '#555' : '#e67e22', border: 'none', color: '#fff',
+                padding: '0.25rem 0.5rem', borderRadius: 4, fontSize: '0.7rem',
+                cursor: wikiSyncStatus === 'loading' ? 'wait' : 'pointer', whiteSpace: 'nowrap',
+              }}
+            >
+              {wikiSyncStatus === 'loading' ? 'Syncing...' : 'Sync'}
+            </button>
+            {wikiSyncMessage && (
+              <span style={{
+                fontSize: '0.65rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                color: wikiSyncStatus === 'success' ? '#2ecc71' : '#e74c3c',
+              }}>{wikiSyncMessage}</span>
+            )}
+          </div>
           <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem', justifyContent: 'flex-end' }}>
             <div style={{ position: 'relative' }}>
               <button
