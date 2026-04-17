@@ -707,6 +707,15 @@ function App() {
   // For each task in order, track cumulative points and note where thresholds are crossed
   // Milestones are now computed inline in the route rendering
 
+  // Next relic/region unlock progress
+  const nextRelicThreshold = RELIC_THRESHOLDS.find(t => t > routeEarnedPoints)
+  const nextRelicIndex = nextRelicThreshold ? RELIC_THRESHOLDS.indexOf(nextRelicThreshold) + 1 : null
+  const pointsUntilNextRelic = nextRelicThreshold ? nextRelicThreshold - routeEarnedPoints : null
+
+  const nextRegionThreshold = REGION_THRESHOLDS.find(t => t > routeCompleted)
+  const nextRegionIndex = nextRegionThreshold ? REGION_THRESHOLDS.indexOf(nextRegionThreshold) + 1 : null
+  const tasksUntilNextRegion = nextRegionThreshold ? nextRegionThreshold - routeCompleted : null
+
   const filteredPoints = filtered.reduce((s, t) => s + t.points, 0)
 
   return (
@@ -1220,6 +1229,46 @@ function App() {
                 })()}
               </SortableContext>
             </DndContext>
+            {(pointsUntilNextRelic != null || tasksUntilNextRegion != null) && routeTasks.length > 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginTop: '0.75rem' }}>
+                {pointsUntilNextRelic != null && nextRelicIndex != null && (
+                  <div style={{
+                    display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 0.75rem',
+                    borderRadius: 6, background: '#2a1a0e', border: '1px solid #e67e22',
+                  }}>
+                    <span style={{ fontSize: '1rem' }}>🔓</span>
+                    <span style={{ color: '#f39c12', fontSize: '0.85rem', flex: 1 }}>
+                      <strong>{pointsUntilNextRelic.toLocaleString()}</strong> pts until Relic {nextRelicIndex} unlock ({nextRelicThreshold!.toLocaleString()} pts)
+                    </span>
+                    <div style={{ width: 100, height: 6, background: '#333', borderRadius: 3, overflow: 'hidden' }}>
+                      <div style={{
+                        height: '100%', borderRadius: 3,
+                        background: '#e67e22',
+                        width: `${(routeEarnedPoints / nextRelicThreshold!) * 100}%`,
+                      }} />
+                    </div>
+                  </div>
+                )}
+                {tasksUntilNextRegion != null && nextRegionIndex != null && (
+                  <div style={{
+                    display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 0.75rem',
+                    borderRadius: 6, background: '#0e1a2a', border: '1px solid #3498db',
+                  }}>
+                    <span style={{ fontSize: '1rem' }}>🗺</span>
+                    <span style={{ color: '#3498db', fontSize: '0.85rem', flex: 1 }}>
+                      <strong>{tasksUntilNextRegion}</strong> tasks until Region {nextRegionIndex} unlock ({nextRegionThreshold} tasks)
+                    </span>
+                    <div style={{ width: 100, height: 6, background: '#333', borderRadius: 3, overflow: 'hidden' }}>
+                      <div style={{
+                        height: '100%', borderRadius: 3,
+                        background: '#3498db',
+                        width: `${(routeCompleted / nextRegionThreshold!) * 100}%`,
+                      }} />
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       )}
