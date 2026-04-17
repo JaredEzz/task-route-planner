@@ -91,6 +91,32 @@ const TIER_COLORS: Record<string, string> = {
   Master: '#e67e22',
 }
 
+const WIKI_BASE = 'https://oldschool.runescape.wiki/images/'
+
+const TIER_ICONS: Record<string, string> = {
+  Easy: `${WIKI_BASE}Trailblazer_Reloaded_League_tasks_-_Easy.png?e49f6`,
+  Medium: `${WIKI_BASE}Trailblazer_Reloaded_League_tasks_-_Medium.png?600c9`,
+  Hard: `${WIKI_BASE}Trailblazer_Reloaded_League_tasks_-_Hard.png?120b6`,
+  Elite: `${WIKI_BASE}Trailblazer_Reloaded_League_tasks_-_Elite.png?2ce35`,
+  Master: `${WIKI_BASE}Trailblazer_Reloaded_League_tasks_-_Master.png?dea9d`,
+}
+
+const REGION_ICONS: Record<string, string> = {
+  Varlamore: `${WIKI_BASE}Varlamore_Area_Badge.png?2e60e`,
+  Karamja: `${WIKI_BASE}Karamja_Area_Badge.png?a771c`,
+  Asgarnia: `${WIKI_BASE}Asgarnia_Area_Badge.png?4ec29`,
+  Desert: `${WIKI_BASE}Desert_Area_Badge.png?2a1e3`,
+  Fremennik: `${WIKI_BASE}Fremennik_Area_Badge.png?f8338`,
+  Kandarin: `${WIKI_BASE}Kandarin_Area_Badge.png?f8338`,
+  Morytania: `${WIKI_BASE}Morytania_Area_Badge.png?2a1e3`,
+  Tirannwn: `${WIKI_BASE}Tirannwn_Area_Badge.png?4b9ee`,
+  Wilderness: `${WIKI_BASE}Wilderness_Area_Badge.png?2a1e3`,
+  Kourend: `${WIKI_BASE}Kourend_Area_Badge.png?1f79a`,
+}
+
+const LEAGUE_LOGO = `${WIKI_BASE}Demonic_Pacts_League_logo.png?4aaa2`
+const RELIC_ICON = `${WIKI_BASE}Demonic_Pacts_League_-_relic_icon.png?d67d2`
+
 const SELECTABLE_REGIONS = ['Asgarnia', 'Desert', 'Fremennik', 'Kandarin', 'Kourend', 'Morytania', 'Tirannwn', 'Wilderness']
 const TOGGLEABLE_REGIONS = ['Varlamore', 'Karamja']
 const MAX_EXTRA_REGIONS = 3
@@ -194,13 +220,16 @@ function SortableRouteItem({ task, index, isCompleted, onToggleComplete, onRemov
         onChange={() => onToggleComplete(task.id)}
         style={{ width: 16, height: 16, cursor: 'pointer' }}
       />
-      <span style={{
-        padding: '1px 6px', borderRadius: 3, fontSize: '0.65rem', fontWeight: 'bold',
-        color: '#fff', background: TIER_COLORS[task.tier] || '#888',
-      }}>
-        {task.tier}
-      </span>
-      <span style={{ fontSize: '0.65rem', color: '#666', minWidth: 70 }}>{task.region}</span>
+      {TIER_ICONS[task.tier] ? (
+        <img src={TIER_ICONS[task.tier]} alt={task.tier} title={task.tier} style={{ width: 20, height: 20 }} />
+      ) : (
+        <span style={{ padding: '1px 6px', borderRadius: 3, fontSize: '0.65rem', fontWeight: 'bold', color: '#fff', background: TIER_COLORS[task.tier] || '#888' }}>{task.tier}</span>
+      )}
+      {REGION_ICONS[task.region] ? (
+        <img src={REGION_ICONS[task.region]} alt={task.region} title={task.region} style={{ width: 18, height: 18 }} />
+      ) : (
+        <span style={{ fontSize: '0.65rem', color: '#666', minWidth: 70 }}>{task.region}</span>
+      )}
       <div style={{ flex: 1 }}>
         <div style={{
           color: '#ddd', fontSize: '0.85rem',
@@ -720,9 +749,12 @@ function App() {
 
   return (
     <div style={{ fontFamily: 'system-ui, sans-serif', maxWidth: 960, margin: '0 auto', padding: '1rem' }}>
-      <h1 style={{ textAlign: 'center', marginBottom: '0.5rem' }}>
-        OSRS Leagues VI - Task Route Planner
-      </h1>
+      <div style={{ textAlign: 'center', marginBottom: '0.75rem' }}>
+        <img src={LEAGUE_LOGO} alt="Demonic Pacts League" style={{ width: 48, height: 48, verticalAlign: 'middle', marginRight: 10 }} />
+        <h1 style={{ display: 'inline', verticalAlign: 'middle', fontSize: '1.5rem', color: '#ffc29c' }}>
+          Demonic Pacts - Task Route Planner
+        </h1>
+      </div>
 
       {/* Region selector bar */}
       <div style={{
@@ -933,14 +965,16 @@ function App() {
                 >
                   +
                 </button>
-                <span style={{
-                  padding: '2px 8px', borderRadius: 4, fontSize: '0.7rem', fontWeight: 'bold',
-                  color: '#fff', background: TIER_COLORS[task.tier] || '#888',
-                  minWidth: 50, textAlign: 'center',
-                }}>
-                  {task.tier}
-                </span>
-                <span style={{ fontSize: '0.7rem', color: '#888', minWidth: 90 }}>{task.region}</span>
+                {TIER_ICONS[task.tier] ? (
+                  <img src={TIER_ICONS[task.tier]} alt={task.tier} title={task.tier} style={{ width: 24, height: 24 }} />
+                ) : (
+                  <span style={{ padding: '2px 8px', borderRadius: 4, fontSize: '0.7rem', fontWeight: 'bold', color: '#fff', background: TIER_COLORS[task.tier] || '#888', minWidth: 50, textAlign: 'center' }}>{task.tier}</span>
+                )}
+                {REGION_ICONS[task.region] ? (
+                  <img src={REGION_ICONS[task.region]} alt={task.region} title={task.region} style={{ width: 22, height: 22 }} />
+                ) : (
+                  <span style={{ fontSize: '0.7rem', color: '#888', minWidth: 90 }}>{task.region}</span>
+                )}
                 <div style={{ flex: 1 }}>
                   <div style={{ fontWeight: 500, fontSize: '0.9rem' }}>{task.name}</div>
                   <div style={{ fontSize: '0.75rem', color: '#666' }}>{task.description}</div>
@@ -1205,10 +1239,10 @@ function App() {
 
                     while (nextRelicIdx < RELIC_THRESHOLDS.length && cumPoints >= RELIC_THRESHOLDS[nextRelicIdx]) {
                       elements.push(
-                        <div key={`relic-${nextRelicIdx}`} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 0.75rem', borderRadius: 6, margin: '0.25rem 0', background: 'linear-gradient(90deg, #e67e22 0%, #f39c12 50%, #e67e22 100%)', border: '2px solid #f39c12' }}>
-                          <span style={{ fontSize: '1.2rem' }}>🔓</span>
-                          <span style={{ color: '#fff', fontWeight: 'bold', fontSize: '0.9rem', flex: 1 }}>Relic {nextRelicIdx + 1} Unlock</span>
-                          <span style={{ color: '#fff', fontSize: '0.8rem', opacity: 0.9 }}>{RELIC_THRESHOLDS[nextRelicIdx].toLocaleString()} pts</span>
+                        <div key={`relic-${nextRelicIdx}`} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 0.75rem', borderRadius: 6, margin: '0.25rem 0', background: 'linear-gradient(90deg, #6a2525 0%, #8b3030 50%, #6a2525 100%)', border: '2px solid #daac64' }}>
+                          <img src={RELIC_ICON} alt="Relic" style={{ width: 22, height: 22 }} />
+                          <span style={{ color: '#ffc29c', fontWeight: 'bold', fontSize: '0.9rem', flex: 1 }}>Relic {nextRelicIdx + 1} Unlock</span>
+                          <span style={{ color: '#daac64', fontSize: '0.8rem' }}>{RELIC_THRESHOLDS[nextRelicIdx].toLocaleString()} pts</span>
                         </div>
                       )
                       nextRelicIdx++
@@ -1216,10 +1250,10 @@ function App() {
 
                     while (nextRegionIdx < REGION_THRESHOLDS.length && taskCount >= REGION_THRESHOLDS[nextRegionIdx]) {
                       elements.push(
-                        <div key={`region-${nextRegionIdx}`} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 0.75rem', borderRadius: 6, margin: '0.25rem 0', background: 'linear-gradient(90deg, #3498db 0%, #2980b9 50%, #3498db 100%)', border: '2px solid #2980b9' }}>
-                          <span style={{ fontSize: '1.2rem' }}>🗺</span>
+                        <div key={`region-${nextRegionIdx}`} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 0.75rem', borderRadius: 6, margin: '0.25rem 0', background: 'linear-gradient(90deg, #1a2a3e 0%, #1e3a5e 50%, #1a2a3e 100%)', border: '2px solid #3498db' }}>
+                          <span style={{ fontSize: '1.2rem' }}>🗺️</span>
                           <span style={{ color: '#fff', fontWeight: 'bold', fontSize: '0.9rem', flex: 1 }}>Region {nextRegionIdx + 1} Unlock</span>
-                          <span style={{ color: '#fff', fontSize: '0.8rem', opacity: 0.9 }}>{REGION_THRESHOLDS[nextRegionIdx]} tasks</span>
+                          <span style={{ color: '#3498db', fontSize: '0.8rem' }}>{REGION_THRESHOLDS[nextRegionIdx]} tasks</span>
                         </div>
                       )
                       nextRegionIdx++
@@ -1234,16 +1268,16 @@ function App() {
                 {pointsUntilNextRelic != null && nextRelicIndex != null && (
                   <div style={{
                     display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 0.75rem',
-                    borderRadius: 6, background: '#2a1a0e', border: '1px solid #e67e22',
+                    borderRadius: 6, background: '#361919', border: '1px solid #daac64',
                   }}>
-                    <span style={{ fontSize: '1rem' }}>🔓</span>
-                    <span style={{ color: '#f39c12', fontSize: '0.85rem', flex: 1 }}>
+                    <img src={RELIC_ICON} alt="Relic" style={{ width: 20, height: 20 }} />
+                    <span style={{ color: '#ffc29c', fontSize: '0.85rem', flex: 1 }}>
                       <strong>{pointsUntilNextRelic.toLocaleString()}</strong> pts until Relic {nextRelicIndex} unlock ({nextRelicThreshold!.toLocaleString()} pts)
                     </span>
                     <div style={{ width: 100, height: 6, background: '#333', borderRadius: 3, overflow: 'hidden' }}>
                       <div style={{
                         height: '100%', borderRadius: 3,
-                        background: '#e67e22',
+                        background: '#daac64',
                         width: `${(routeEarnedPoints / nextRelicThreshold!) * 100}%`,
                       }} />
                     </div>
@@ -1270,6 +1304,21 @@ function App() {
               </div>
             )}
           </div>
+          <button
+            onClick={() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })}
+            title="Scroll to bottom"
+            style={{
+              position: 'fixed', bottom: 24, right: 24,
+              width: 44, height: 44, borderRadius: '50%',
+              background: '#6a2525', border: '2px solid #daac64',
+              color: '#ffc29c', fontSize: '1.2rem', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
+              zIndex: 50,
+            }}
+          >
+            ↓
+          </button>
         </div>
       )}
 
