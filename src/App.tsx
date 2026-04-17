@@ -431,6 +431,51 @@ function App() {
   })
   const [showCompleted] = useState(true)
   const [activeTab, setActiveTab] = useState<'tasks' | 'route' | 'json'>('tasks')
+  const [showExportMenu, setShowExportMenu] = useState(false)
+
+  const generateRuneliteId = () => {
+    const chars = 'abcdefghijklmnopqrstuvwxyz0123456789'
+    let id = ''
+    for (let i = 0; i < 20; i++) id += chars[Math.floor(Math.random() * chars.length)]
+    return id
+  }
+
+  const exportRuneliteTaskTracker = useCallback(() => {
+    const sections: { id: string, name: string, items: any[] }[] = []
+    let currentSection: { id: string, name: string, items: any[] } | null = null
+
+    for (const entry of route) {
+      if (isSection(entry)) {
+        currentSection = { id: generateRuneliteId(), name: entry.title, items: [] }
+        sections.push(currentSection)
+      } else {
+        if (!currentSection) {
+          currentSection = { id: generateRuneliteId(), name: 'Route', items: [] }
+          sections.push(currentSection)
+        }
+        const item: any = { taskId: entry }
+        const note = notes[entry]
+        if (note) item.note = note
+        currentSection.items.push(item)
+      }
+    }
+
+    const data = {
+      id: generateRuneliteId(),
+      name: 'Task Route Planner Export',
+      taskType: 'LEAGUE_6',
+      sections,
+    }
+
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'runelite-task-tracker.json'
+    a.click()
+    URL.revokeObjectURL(url)
+    setShowExportMenu(false)
+  }, [route, notes])
 
   const allTasks = tasks as Task[]
   const taskMap = useMemo(() => {
@@ -812,25 +857,60 @@ function App() {
           padding: '0.75rem',
         }}>
           <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem', justifyContent: 'flex-end' }}>
-            <button
-              onClick={() => {
-                const data = JSON.stringify({ route, completed: Array.from(completed), notes }, null, 2)
-                const blob = new Blob([data], { type: 'application/json' })
-                const url = URL.createObjectURL(blob)
-                const a = document.createElement('a')
-                a.href = url
-                a.download = 'leagues-route.json'
-                a.click()
-                URL.revokeObjectURL(url)
-              }}
-              style={{
-                background: '#3498db', border: 'none', color: '#fff',
-                padding: '0.3rem 0.6rem', borderRadius: 4, fontSize: '0.75rem',
-                cursor: 'pointer',
-              }}
-            >
-              Export Route
-            </button>
+            <div style={{ position: 'relative' }}>
+              <button
+                onClick={() => setShowExportMenu(prev => !prev)}
+                style={{
+                  background: '#3498db', border: 'none', color: '#fff',
+                  padding: '0.3rem 0.6rem', borderRadius: 4, fontSize: '0.75rem',
+                  cursor: 'pointer',
+                }}
+              >
+                Export Route ▾
+              </button>
+              {showExportMenu && (
+                <div style={{
+                  position: 'absolute', top: '100%', left: 0, marginTop: 4,
+                  background: '#1a1a2e', border: '1px solid #3498db', borderRadius: 4,
+                  zIndex: 100, minWidth: 200, overflow: 'hidden',
+                }}>
+                  <button
+                    onClick={() => {
+                      const data = JSON.stringify({ route, completed: Array.from(completed), notes }, null, 2)
+                      const blob = new Blob([data], { type: 'application/json' })
+                      const url = URL.createObjectURL(blob)
+                      const a = document.createElement('a')
+                      a.href = url
+                      a.download = 'leagues-route.json'
+                      a.click()
+                      URL.revokeObjectURL(url)
+                      setShowExportMenu(false)
+                    }}
+                    style={{
+                      display: 'block', width: '100%', background: 'none', border: 'none',
+                      color: '#fff', padding: '0.5rem 0.75rem', fontSize: '0.75rem',
+                      cursor: 'pointer', textAlign: 'left',
+                    }}
+                    onMouseEnter={e => (e.currentTarget.style.background = '#2a2a4e')}
+                    onMouseLeave={e => (e.currentTarget.style.background = 'none')}
+                  >
+                    Task Route Planner (default)
+                  </button>
+                  <button
+                    onClick={exportRuneliteTaskTracker}
+                    style={{
+                      display: 'block', width: '100%', background: 'none', border: 'none',
+                      color: '#fff', padding: '0.5rem 0.75rem', fontSize: '0.75rem',
+                      cursor: 'pointer', textAlign: 'left', borderTop: '1px solid #333',
+                    }}
+                    onMouseEnter={e => (e.currentTarget.style.background = '#2a2a4e')}
+                    onMouseLeave={e => (e.currentTarget.style.background = 'none')}
+                  >
+                    Runelite Task Tracker
+                  </button>
+                </div>
+              )}
+            </div>
             <button
               onClick={() => {
                 const title = prompt('Section heading:')
