@@ -752,7 +752,7 @@ function App() {
   const filteredPoints = filtered.reduce((s, t) => s + t.points, 0)
 
   return (
-    <div style={{ fontFamily: 'system-ui, sans-serif', maxWidth: 960, margin: '0 auto', padding: '1rem' }}>
+    <div style={{ fontFamily: 'system-ui, sans-serif', maxWidth: 960, margin: '0 auto', padding: '1rem', background: '#0d1117', minHeight: '100vh', color: '#ccc' }}>
       <div style={{ textAlign: 'center', marginBottom: '0.75rem' }}>
         <img src={LEAGUE_LOGO} alt="Demonic Pacts League" style={{ width: 48, height: 48, verticalAlign: 'middle', marginRight: 10 }} />
         <h1 style={{ display: 'inline', verticalAlign: 'middle', fontSize: '1.5rem', color: '#ffc29c' }}>
@@ -839,7 +839,7 @@ function App() {
             flex: 1, padding: '0.6rem', border: 'none', cursor: 'pointer',
             fontWeight: 'bold', fontSize: '0.9rem', transition: 'all 0.15s',
             borderBottom: activeTab === 'tasks' ? '3px solid #3498db' : '3px solid transparent',
-            background: activeTab === 'tasks' ? '#f0f7ff' : '#f5f5f5',
+            background: activeTab === 'tasks' ? '#1a2332' : '#161b22',
             color: activeTab === 'tasks' ? '#3498db' : '#888',
             borderRadius: '6px 0 0 0',
           }}
@@ -852,7 +852,7 @@ function App() {
             flex: 1, padding: '0.6rem', border: 'none', cursor: 'pointer',
             fontWeight: 'bold', fontSize: '0.9rem', transition: 'all 0.15s',
             borderBottom: activeTab === 'route' ? '3px solid #e67e22' : '3px solid transparent',
-            background: activeTab === 'route' ? '#fff8f0' : '#f5f5f5',
+            background: activeTab === 'route' ? '#2a1a0e' : '#161b22',
             color: activeTab === 'route' ? '#e67e22' : '#888',
             borderRadius: 0,
           }}
@@ -903,7 +903,7 @@ function App() {
                     })}
                     style={{
                       padding: '0.2rem 0.5rem', borderRadius: 4, fontSize: '0.7rem', fontWeight: 'bold',
-                      border: `2px solid ${isActive ? TIER_COLORS[tier] : '#ddd'}`,
+                      border: `2px solid ${isActive ? TIER_COLORS[tier] : '#444'}`,
                       background: isActive ? TIER_COLORS[tier] : 'transparent',
                       color: isActive ? '#fff' : '#888',
                       cursor: 'pointer', transition: 'all 0.15s',
@@ -916,7 +916,7 @@ function App() {
                 )
               })}
 
-              <div style={{ width: 1, height: 20, background: '#ddd', margin: '0 0.25rem' }} />
+              <div style={{ width: 1, height: 20, background: '#444', margin: '0 0.25rem' }} />
 
               <span style={{ fontSize: '0.7rem', color: '#888', marginRight: '0.25rem' }}>Sort:</span>
               {[
@@ -932,7 +932,7 @@ function App() {
                     onClick={() => setActiveSort(prev => prev === opt.value ? null : opt.value)}
                     style={{
                       padding: '0.2rem 0.5rem', borderRadius: 4, fontSize: '0.7rem', fontWeight: 'bold',
-                      border: `2px solid ${isActive ? '#e74c3c' : '#ddd'}`,
+                      border: `2px solid ${isActive ? '#e74c3c' : '#444'}`,
                       background: isActive ? '#e74c3c' : 'transparent',
                       color: isActive ? '#fff' : '#888',
                       cursor: 'pointer', transition: 'all 0.15s',
@@ -969,13 +969,13 @@ function App() {
                     setShowAutocomplete(false)
                   }
                 }}
-                style={{ width: '100%', padding: '0.5rem', borderRadius: 6, border: '1px solid #ccc', fontSize: '0.9rem' }}
+                style={{ width: '100%', padding: '0.5rem', borderRadius: 6, border: '1px solid #333', fontSize: '0.9rem', background: '#161b22', color: '#ccc' }}
               />
               {showAutocomplete && autocompleSuggestions.length > 0 && (
                 <div style={{
                   position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 10,
-                  background: '#fff', border: '1px solid #ccc', borderTop: 'none',
-                  borderRadius: '0 0 6px 6px', boxShadow: '0 4px 8px rgba(0,0,0,0.1)',
+                  background: '#1a1a2e', border: '1px solid #333', borderTop: 'none',
+                  borderRadius: '0 0 6px 6px', boxShadow: '0 4px 8px rgba(0,0,0,0.4)',
                 }}>
                   {autocompleSuggestions.map((s, i) => (
                     <div
@@ -983,8 +983,8 @@ function App() {
                       onMouseDown={() => applyAutocomplete(s.filter)}
                       style={{
                         padding: '0.5rem 0.75rem', cursor: 'pointer', fontSize: '0.85rem',
-                        borderBottom: i < autocompleSuggestions.length - 1 ? '1px solid #eee' : 'none',
-                        background: i === 0 ? '#f0f7ff' : '#fff',
+                        borderBottom: i < autocompleSuggestions.length - 1 ? '1px solid #333' : 'none', color: '#ccc',
+                        background: i === 0 ? '#2a2a4e' : 'transparent',
                       }}
                     >
                       <span style={{ color: '#3498db', fontWeight: 'bold' }}>{s.filter.key}:</span>{' '}
@@ -1010,7 +1010,7 @@ function App() {
                 style={{
                   display: 'flex', alignItems: 'center', gap: '0.75rem',
                   padding: '0.5rem 0.75rem', borderRadius: 6,
-                  border: '1px solid #e0e0e0', background: '#fff',
+                  border: '1px solid #2a2a3e', background: '#161b22',
                   transition: 'all 0.15s',
                 }}
               >
@@ -1037,8 +1037,8 @@ function App() {
                   <span style={{ fontSize: '0.7rem', color: '#888', minWidth: 90 }}>{task.region}</span>
                 )}
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 500, fontSize: '0.9rem' }}>{task.name}</div>
-                  <div style={{ fontSize: '0.75rem', color: '#666' }}>{task.description}</div>
+                  <div style={{ fontWeight: 500, fontSize: '0.9rem', color: '#ddd' }}>{task.name}</div>
+                  <div style={{ fontSize: '0.75rem', color: '#888' }}>{task.description}</div>
                   {(task.requirements || task.other) && (
                     <div style={{ fontSize: '0.7rem', color: '#e67e22', marginTop: 2 }}>
                       {task.requirements && <span>Req: {task.requirements}</span>}
@@ -1055,7 +1055,7 @@ function App() {
                     {completionPcts[task.id].toFixed(1)}%
                   </span>
                 )}
-                <span style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#555' }}>
+                <span style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#aaa' }}>
                   {task.points} pts
                 </span>
               </div>
