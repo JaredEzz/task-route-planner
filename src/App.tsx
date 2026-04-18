@@ -1219,7 +1219,7 @@ function App() {
             </label>
             <button
               onClick={() => {
-                if (!confirm('Clear entire route, completed tasks, and notes?')) return
+                if (!window.confirm('Clear entire route, completed tasks, and notes?')) return
                 setRoute([])
                 setCompleted(new Set())
                 setNotes({})
