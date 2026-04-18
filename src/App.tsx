@@ -385,6 +385,8 @@ function SortableSectionItem({ section, onToggleCollapse, onRemove, onRename }: 
 function App() {
   const [filterInput, setFilterInput] = useState('')
   const [filters, setFilters] = useState<Array<{ key: string, value: string }>>([])
+  const [tierFilter, setTierFilter] = useState<Set<string>>(new Set())
+  const [activeSort, setActiveSort] = useState<string | null>(null)
   const [notes, setNotes] = useState<Record<number, string>>(() => {
     const saved = localStorage.getItem('task-notes')
     return saved ? JSON.parse(saved) : {}
@@ -634,13 +636,17 @@ function App() {
   }
 
   const filtered = useMemo(() => {
-    const nonSortFilters = filters.filter(f => f.key !== 'sort')
+    const nonSortFilters = filters.filter(f => f.key !== 'sort' && f.key !== 'tier')
     const sortFilter = filters.find(f => f.key === 'sort')
+    const sortValue = activeSort || sortFilter?.value || null
 
     const result = allTasks.filter(t => {
       if (routeSet.has(t.id)) return false
       if (!activeRegions.has(t.region)) return false
       if (!showCompleted && completed.has(t.id)) return false
+
+      // Button-based tier filter
+      if (tierFilter.size > 0 && !tierFilter.has(t.tier)) return false
 
       // Group filters by type: same type = OR, different types = AND
       const grouped: Record<string, string[]> = {}
@@ -653,8 +659,6 @@ function App() {
       for (const [key, values] of Object.entries(grouped)) {
         const matchesAny = values.some(val => {
           switch (key) {
-            case 'tier':
-              return t.tier.toLowerCase() === val
             case 'region':
               return t.region.toLowerCase() === val
             case 'req':
@@ -671,19 +675,18 @@ function App() {
       return true
     })
 
-    if (sortFilter) {
-      const sv = sortFilter.value
+    if (sortValue) {
       result.sort((a, b) => {
-        if (sv === 'percent-increasing') return (completionPcts[a.id] ?? 0) - (completionPcts[b.id] ?? 0)
-        if (sv === 'percent-decreasing') return (completionPcts[b.id] ?? 0) - (completionPcts[a.id] ?? 0)
-        if (sv === 'points-increasing') return a.points - b.points
-        if (sv === 'points-decreasing') return b.points - a.points
+        if (sortValue === 'percent-increasing') return (completionPcts[a.id] ?? 0) - (completionPcts[b.id] ?? 0)
+        if (sortValue === 'percent-decreasing') return (completionPcts[b.id] ?? 0) - (completionPcts[a.id] ?? 0)
+        if (sortValue === 'points-increasing') return a.points - b.points
+        if (sortValue === 'points-decreasing') return b.points - a.points
         return 0
       })
     }
 
     return result
-  }, [allTasks, activeRegions, filters, completed, showCompleted, routeSet, completionPcts])
+  }, [allTasks, activeRegions, filters, completed, showCompleted, routeSet, completionPcts, tierFilter, activeSort])
 
   const toggleComplete = (id: number) => {
     setCompleted(prev => {
@@ -884,10 +887,67 @@ function App() {
                 </span>
               )})}
             </div>
+            {/* Tier filter buttons */}
+            <div style={{ display: 'flex', gap: '0.3rem', flexWrap: 'wrap', alignItems: 'center', marginBottom: '0.4rem' }}>
+              <span style={{ fontSize: '0.7rem', color: '#888', marginRight: '0.25rem' }}>Tier:</span>
+              {ALL_TIERS.map(tier => {
+                const isActive = tierFilter.has(tier)
+                return (
+                  <button
+                    key={tier}
+                    onClick={() => setTierFilter(prev => {
+                      const next = new Set(prev)
+                      if (next.has(tier)) next.delete(tier)
+                      else next.add(tier)
+                      return next
+                    })}
+                    style={{
+                      padding: '0.2rem 0.5rem', borderRadius: 4, fontSize: '0.7rem', fontWeight: 'bold',
+                      border: `2px solid ${isActive ? TIER_COLORS[tier] : '#ddd'}`,
+                      background: isActive ? TIER_COLORS[tier] : 'transparent',
+                      color: isActive ? '#fff' : '#888',
+                      cursor: 'pointer', transition: 'all 0.15s',
+                      display: 'flex', alignItems: 'center', gap: '0.25rem',
+                    }}
+                  >
+                    {TIER_ICONS[tier] && <img src={TIER_ICONS[tier]} alt="" style={{ width: 14, height: 14 }} />}
+                    {tier}
+                  </button>
+                )
+              })}
+
+              <div style={{ width: 1, height: 20, background: '#ddd', margin: '0 0.25rem' }} />
+
+              <span style={{ fontSize: '0.7rem', color: '#888', marginRight: '0.25rem' }}>Sort:</span>
+              {[
+                { label: '% ↑', value: 'percent-increasing' },
+                { label: '% ↓', value: 'percent-decreasing' },
+                { label: 'Pts ↑', value: 'points-increasing' },
+                { label: 'Pts ↓', value: 'points-decreasing' },
+              ].map(opt => {
+                const isActive = activeSort === opt.value
+                return (
+                  <button
+                    key={opt.value}
+                    onClick={() => setActiveSort(prev => prev === opt.value ? null : opt.value)}
+                    style={{
+                      padding: '0.2rem 0.5rem', borderRadius: 4, fontSize: '0.7rem', fontWeight: 'bold',
+                      border: `2px solid ${isActive ? '#e74c3c' : '#ddd'}`,
+                      background: isActive ? '#e74c3c' : 'transparent',
+                      color: isActive ? '#fff' : '#888',
+                      cursor: 'pointer', transition: 'all 0.15s',
+                    }}
+                  >
+                    {opt.label}
+                  </button>
+                )
+              })}
+            </div>
+
             <div style={{ position: 'relative' }}>
               <input
                 type="text"
-                placeholder="Filter tasks... (try region: varlamore, tier: easy, req: fishing, or just text)"
+                placeholder="Filter tasks... (try req: fishing, or just text)"
                 value={filterInput}
                 onChange={e => { setFilterInput(e.target.value); setShowAutocomplete(true) }}
                 onFocus={() => setShowAutocomplete(true)}
