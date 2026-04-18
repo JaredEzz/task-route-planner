@@ -1217,6 +1217,24 @@ function App() {
                 }}
               />
             </label>
+            <button
+              onClick={() => {
+                if (!confirm('Clear entire route, completed tasks, and notes?')) return
+                setRoute([])
+                setCompleted(new Set())
+                setNotes({})
+                localStorage.removeItem('task-route')
+                localStorage.removeItem('completed-tasks')
+                localStorage.removeItem('task-notes')
+              }}
+              style={{
+                background: '#e74c3c', border: 'none', color: '#fff',
+                padding: '0.3rem 0.6rem', borderRadius: 4, fontSize: '0.75rem',
+                cursor: 'pointer',
+              }}
+            >
+              Clear Route
+            </button>
           </div>
           {routeTasks.length === 0 && (
             <div style={{ color: '#555', fontSize: '0.85rem', padding: '1.5rem', textAlign: 'center' }}>
